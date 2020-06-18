@@ -69,7 +69,7 @@ model = tf.keras.models.Sequential([
 
 model.summary()
 model.compile(loss=tf.keras.losses.binary_crossentropy,
-              optimizer=tf.keras.optimizers.RMSprop(lr=0.0001),
+              optimizer=tf.keras.optimizers.RMSprop(lr=0.001),
               metrics=['accuracy'])
 
 # all images will be rescaled by 1.0 / 255
