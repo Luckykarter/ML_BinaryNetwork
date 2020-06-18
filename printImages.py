@@ -66,33 +66,12 @@ def printIntermediateRepresentations(images, model):
             plt.imshow(display_grid)
     plt.show()
 
-def showDatasetExamples(show: bool, number_of_images = 10):
-    if not show:
-        return
-    horse_dir, human_dir, horse_dir_validation, human_dir_validation = getData(unzipped=True)
+def showDatasetExamples(directories: [str], label="Untitled", number_of_images = 10):
 
-    horse_names = os.listdir(horse_dir)
-    human_names = os.listdir(human_dir)
-
-    horse_pics = [os.path.join(horse_dir, name)
-                  for name in getRandomItems(horse_names, number_of_images)]
-    human_pics = [os.path.join(human_dir, name)
-                  for name in getRandomItems(human_names, number_of_images)]
-
-    show_images = horse_pics + human_pics
-
-    printImages(show_images, "Random Training Images")
-
-    # display some validation images
-    horse_names = os.listdir(horse_dir_validation)
-    human_names = os.listdir(human_dir_validation)
-    horse_pics = [os.path.join(horse_dir_validation, name)
-                  for name in getRandomItems(horse_names, number_of_images)]
-
-    human_pics = [os.path.join(human_dir_validation, name)
-                  for name in getRandomItems(human_names, number_of_images)]
-
-    show_images = horse_pics + human_pics
-
-    printImages(show_images, "Random Validation Images")
+    show_images = []
+    for dir in directories:
+        names = os.listdir(dir)
+        show_images += [os.path.join(dir, name)
+                for name in getRandomItems(names, number_of_images)]
+    printImages(show_images, label)
 

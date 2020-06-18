@@ -1,6 +1,7 @@
 import os
 import random
 import zipfile
+import easygui
 
 def getRandomItems(lst, number=1):
     return [random.choice(lst) for _ in range(number)]
@@ -16,29 +17,43 @@ def unZipAll(dir):
             zip_ref.close()
 
 # load images of humans and horses from ZIP-file
-def getData(unzipped = False):
-    base_dir = 'resources'
-    name_dir = 'horse-or-human'
-    if not unzipped:
-        unZipAll(base_dir)
+def getData():
+    # add generalized directory
+    train_dir = None
+    while train_dir is None:
+        train_dir = easygui.diropenbox(title="Choose folder that contains binary training set split in two folders" )
+        if len(os.listdir(train_dir)) != 2:
+            if easygui.ynbox("Directory must contain two sub-directories.\nChoose another directory?"):
+                train_dir = None
+            else:
+                exit(1)
 
-    train_dir = os.path.join(base_dir, name_dir)
-    validation_dir = os.path.join(base_dir, 'validation-' + name_dir)
 
-    horse_dir_train = os.path.join(train_dir, 'horses')
-    human_dir_train = os.path.join(train_dir, 'humans')
+    # validation data is not mandatory
+    validation_dir = easygui.diropenbox(title="Choose directory that contains validation data of two types" )
 
-    horse_dir_validation = os.path.join(validation_dir, 'horses')
-    human_dir_validation = os.path.join(validation_dir, 'humans')
+    # if directory is chosen - unzipping is not needed
+    # if not unzipped:
+    #     unZipAll(base_dir)
 
-    return (horse_dir_train, human_dir_train,
-            horse_dir_validation, human_dir_validation)
+    # train_dir = os.path.join(base_dir, name_dir)
+    # validation_dir = os.path.join(base_dir, 'validation-' + name_dir)
+
+    train_dirs = [os.path.join(train_dir, x)
+                  for x in os.listdir(train_dir)]
+
+    validation_dirs = [None, None]
+    if not validation_dir is None:
+        validation_dirs = [os.path.join(validation_dir, x)
+                           for x in os.listdir(validation_dir)]
+
+    return tuple(train_dirs + validation_dirs)
 
 # import tkinter as tk
 # from tkinter import filedialog
-import easygui
 
-def getUserFile():
+
+def getUserFile(a_label: str, b_label: str):
 # this does not work well - hangs the script
 #     root = tk.Tk()
 #     root.withdraw()
@@ -48,7 +63,7 @@ def getUserFile():
 # easygui works better
 
      return easygui.fileopenbox(
-          msg="Horse or human",
+          msg="{} or {}".format(a_label, b_label),
           title="Choose image(s)",
           multiple=True
      )
