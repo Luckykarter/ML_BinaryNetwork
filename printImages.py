@@ -5,7 +5,6 @@ import numpy as np
 import random
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import tensorflow as tf
-from getData import getData, getRandomItems
 import os
 
 def printImages(images, title, img_titles = None):
@@ -72,6 +71,6 @@ def showDatasetExamples(directories: [str], label="Untitled", number_of_images =
     for dir in directories:
         names = os.listdir(dir)
         show_images += [os.path.join(dir, name)
-                for name in getRandomItems(names, number_of_images)]
+                for name in random.choices(names, k=number_of_images)]
     printImages(show_images, label)
 

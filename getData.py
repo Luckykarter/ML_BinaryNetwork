@@ -3,9 +3,6 @@ import random
 import zipfile
 import easygui
 
-def getRandomItems(lst, number=1):
-    return [random.choice(lst) for _ in range(number)]
-
 def unZipAll(dir):
     for path in os.listdir(dir):
         s_path = os.path.splitext(path)
