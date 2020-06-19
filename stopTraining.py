@@ -4,7 +4,7 @@ class stopTraining(Callback):
     def __init__(self, accuracy):
         super().__init__()
         self.accuracy = accuracy
-    def on_epoch_end(self, epoch, logs={}):
+    def on_epoch_end(self, epoch, logs=None):
         accuracy = logs.get('acc')
         if accuracy is None:
             accuracy = logs.get('accuracy')

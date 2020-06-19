@@ -6,7 +6,7 @@ import numpy as np
 from numba import jit, cuda
 from stopTraining import stopTraining, stopOnOptimalAccuracy
 from keras_preprocessing import image
-from _thread import start_new_thread
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 """
 This file executes script that trains neural network
@@ -22,7 +22,17 @@ cats - with training pictures of cats
 """
 
 SHOW_DATASET_EXAMPLE = False
-a_dir, b_dir, a_dir_validation, b_dir_validation = getData()
+USE_TEST_FOLDERS = False
+TARGET_SIZE= 150
+
+if USE_TEST_FOLDERS: # for saving time during tests - give hardcoded folders
+    a_dir = 'resources/cats_and_dogs_filtered/train/cats'
+    b_dir = 'resources/cats_and_dogs_filtered/train/dogs'
+    a_dir_validation = 'resources/cats_and_dogs_filtered/validation/cats'
+    b_dir_validation = 'resources/cats_and_dogs_filtered/validation/dogs'
+else:
+    a_dir, b_dir, a_dir_validation, b_dir_validation = getData()
+
 VALIDATE = a_dir_validation is not None  # do not validate if validation set is not provided
 a_label = os.path.basename(a_dir)[:-1].capitalize()  # cut last letter "s". I.e. dogs will become dog
 b_label = os.path.basename(b_dir)[:-1].capitalize()
@@ -54,7 +64,7 @@ if SHOW_DATASET_EXAMPLE:
 # define TensorFlow model
 model = tf.keras.models.Sequential([
     # 1
-    tf.keras.layers.Conv2D(16, (3, 3), activation=tf.nn.relu, input_shape=(150, 150, 3)),
+    tf.keras.layers.Conv2D(16, (3, 3), activation=tf.nn.relu, input_shape=(TARGET_SIZE, TARGET_SIZE, 3)),
     tf.keras.layers.MaxPooling2D(2, 2),
     # 2
     tf.keras.layers.Conv2D(32, (3, 3), activation=tf.nn.relu),
@@ -62,12 +72,12 @@ model = tf.keras.models.Sequential([
     # 3
     tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
     tf.keras.layers.MaxPooling2D(2, 2),
-    # 4 and 5 are tremoved because size of pictures decreased
-    # tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
-    # tf.keras.layers.MaxPooling2D(2, 2),
+    # 4 and 5 are removed because size of pictures decreased
+    #  tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
+    #  tf.keras.layers.MaxPooling2D(2, 2),
     # 5
-    # tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
-    # tf.keras.layers.MaxPooling2D(2, 2),
+    #  tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
+    #  tf.keras.layers.MaxPooling2D(2, 2),
     # flatten the image
     tf.keras.layers.Flatten(),
     # 512 connected neurons
@@ -79,26 +89,45 @@ model = tf.keras.models.Sequential([
 
 model.summary()
 model.compile(loss=tf.keras.losses.binary_crossentropy,
-              optimizer=tf.keras.optimizers.RMSprop(lr=0.001),
+              optimizer=tf.keras.optimizers.RMSprop(lr=1e-4),
               metrics=['accuracy'])
 
 # all images will be rescaled by 1.0 / 255
-train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1 / 255)
-validation_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1 / 255)
+# add augmentation to increase dataset size
+train_datagen = ImageDataGenerator(
+    rescale=1 / 255,
+    rotation_range=40,  # random rotation from 0 to 40 degrees
+    width_shift_range=0.2,  #random shift width-wise from 0 to 0.2
+    height_shift_range=0.2, #random shift height-wise
+    shear_range=0.2,    #shear - i.e. transform image
+    zoom_range=0.2,     #random zooming
+    horizontal_flip=True,
+    fill_mode='nearest' #how to fill lost pixels
+)
+validation_datagen = ImageDataGenerator(
+    rescale=1 / 255,
+    rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
 
 # flow training images in batches of 20
 train_generator = train_datagen.flow_from_directory(
     work_dir,  # directory with all images
-    target_size=(150, 150),  # all images will be resized to ...
-    batch_size=20,
+    target_size=(TARGET_SIZE, TARGET_SIZE),  # all images will be resized to ...
+    batch_size=16,
     class_mode='binary'  # binary labels
 )
 validation_generator = None
 if VALIDATE:
     validation_generator = validation_datagen.flow_from_directory(
         work_dir_validation,
-        target_size=(150, 150),
-        batch_size=20,
+        target_size=(TARGET_SIZE,TARGET_SIZE),
+        batch_size=16,
         class_mode='binary'
     )
 
@@ -111,12 +140,13 @@ def train():
     # else:
     #     callback = stopTraining(accuracy=0.8)
     return model.fit(train_generator,
-                     #steps_per_epoch=100,
-                     epochs=15,
+                     steps_per_epoch=16,
+                     epochs=1000,
                      callbacks=[callback],
                      verbose=1,
                      validation_data=validation_generator,
-                     validation_steps=50)
+                     validation_steps=8
+           )
 
 
 # Try to use videocard for processing
@@ -124,7 +154,6 @@ def train():
 def trainWithGPU():
     print('Start training using GPU')
     return train()
-
 
 try:
     history = trainWithGPU()
@@ -145,7 +174,7 @@ while img_paths:
     for file in img_paths:
         try:
             img = image.load_img(
-                file, target_size=(150, 150)
+                file, target_size=(TARGET_SIZE, TARGET_SIZE)
             )
             x = image.img_to_array(img)
             x = np.expand_dims(x, axis=0)

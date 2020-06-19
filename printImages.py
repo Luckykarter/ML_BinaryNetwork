@@ -86,18 +86,23 @@ def plotAccuracy(history, validate=False):
     title = 'Training '
 
     epochs = range(len(accuracy))
-    plt.plot(epochs, accuracy)
+    plt.plot(epochs, accuracy, 'r', label='Accuracy')
     if validate:
         title += 'and Validation '
         val_accuracy = history.history['val_accuracy']
         val_loss = history.history['val_loss']
-        plt.plot(epochs, val_accuracy)
+        plt.plot(epochs, val_accuracy, 'b', label='Validation accuracy')
     plt.title(title + 'accuracy')
+    plt.legend()
+    plt.grid()
     plt.figure()
 
-    plt.plot(epochs, loss)
+    plt.plot(epochs, loss, 'r', label='Loss')
     if validate:
-        plt.plot(epochs, val_loss)
+        plt.plot(epochs, val_loss, 'b', label='Validation loss')
     plt.title(title + 'loss')
-    plt.figure()
+    plt.legend()
+    plt.grid()
     plt.show()
+
+
