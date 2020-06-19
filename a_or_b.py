@@ -4,7 +4,7 @@ from printImages import printImages, plotAccuracy, showDatasetExamples
 import tensorflow as tf
 import numpy as np
 from numba import jit, cuda
-from stopTraining import stopTraining
+from stopTraining import stopTraining, stopOnOptimalAccuracy
 from keras_preprocessing import image
 from _thread import start_new_thread
 
@@ -21,7 +21,7 @@ dogs - with training pictures of dogs
 cats - with training pictures of cats
 """
 
-SHOW_DATASET_EXAMPLE = True
+SHOW_DATASET_EXAMPLE = False
 a_dir, b_dir, a_dir_validation, b_dir_validation = getData()
 VALIDATE = a_dir_validation is not None  # do not validate if validation set is not provided
 a_label = os.path.basename(a_dir)[:-1].capitalize()  # cut last letter "s". I.e. dogs will become dog
@@ -86,7 +86,7 @@ model.compile(loss=tf.keras.losses.binary_crossentropy,
 train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1 / 255)
 validation_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1 / 255)
 
-# flow training images in batches of 128
+# flow training images in batches of 20
 train_generator = train_datagen.flow_from_directory(
     work_dir,  # directory with all images
     target_size=(150, 150),  # all images will be resized to ...
@@ -105,13 +105,18 @@ if VALIDATE:
 
 # training:
 def train():
+    callback = stopTraining(accuracy=0.9)
+    # if VALIDATE:
+    #     callback = stopOnOptimalAccuracy()
+    # else:
+    #     callback = stopTraining(accuracy=0.8)
     return model.fit(train_generator,
-                     steps_per_epoch=8,
+                     #steps_per_epoch=100,
                      epochs=15,
-                     callbacks=[stopTraining(accuracy=0.90)],
+                     callbacks=[callback],
                      verbose=1,
                      validation_data=validation_generator,
-                     validation_steps=8)
+                     validation_steps=50)
 
 
 # Try to use videocard for processing
