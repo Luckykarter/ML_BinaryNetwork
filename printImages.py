@@ -7,6 +7,7 @@ from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import tensorflow as tf
 import os
 
+# prints given images in automaticaly defined grid XnY
 def printImages(images, title, img_titles = None):
     ncols = ceil(sqrt(len(images)))
     nrows = ceil(len(images) / ncols)
@@ -65,14 +66,18 @@ def printIntermediateRepresentations(images, model):
             plt.imshow(display_grid)
     plt.show()
 
-def showDatasetExamples(directories: [str]=None, label="Untitled", number_of_images = 10):
-
-    show_images = []
-    for dir in directories:
-        names = os.listdir(dir)
-        show_images += [os.path.join(dir, name)
-                for name in random.choices(names, k=number_of_images)]
-    printImages(show_images, label)
+# opens separate windows with random examples of training and validation images
+def showDatasetExamples(train_dirs=None, validation_dirs=None, number_of_images = 10):
+    sets = [(train_dirs, 'training'), (validation_dirs, 'validation')]
+    for dirs, label in sets:
+        show_images = []
+        for dir in dirs:
+            if dir is not None:
+                names = os.listdir(dir)
+                show_images += [os.path.join(dir, name)
+                        for name in random.choices(names, k=number_of_images)]
+        if show_images:
+            printImages(show_images, 'Random {} images'.format(label))
 
 def plotAccuracy(history, validate=False):
     accuracy = history.history['accuracy']

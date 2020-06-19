@@ -40,14 +40,10 @@ if VALIDATE:
 # display dataset examples as a separate threads to avoid blocking main script with plot windows
 if SHOW_DATASET_EXAMPLE:
     start_new_thread(showDatasetExamples, (), {
-        'directories': [a_dir, b_dir],
-        'label': 'Random training images'
+        'train_dirs': [a_dir, b_dir],
+        'validation_dirs': [a_dir_validation, b_dir_validation],
+        'number_of_images': 10
     })
-    if VALIDATE:
-        start_new_thread(showDatasetExamples, (), {
-            'directories': [a_dir_validation, b_dir_validation],
-            'label': 'Random validation images'
-        })
 
 # define TensorFlow model
 model = tf.keras.models.Sequential([
