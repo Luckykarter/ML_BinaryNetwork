@@ -152,10 +152,8 @@ def train():
 
 def concurTrain():
     with concurrent.futures.ThreadPoolExecutor() as e:
-        stop_training = e.submit(manualStop)
+        e.submit(manualStop, model)
         future = e.submit(train)
-        if stop_training.result():
-            model.stop_training = True
         return future.result()
 
 # Try to use videocard for processing
