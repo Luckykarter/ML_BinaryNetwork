@@ -38,12 +38,18 @@ if VALIDATE:
     print('total validation {} images: {}'.format(b_label, len(os.listdir(b_dir_validation))))
 
 # display dataset examples as a separate threads to avoid blocking main script with plot windows
+# TKinter does not like multi-thread and plt.show(block=False) does not work
+# TODO: figure out a way to show pictures non-blocking way
+# if SHOW_DATASET_EXAMPLE:
+#
+#     start_new_thread(showDatasetExamples, (), {
+#         'train_dirs': [a_dir, b_dir],
+#         'validation_dirs': [a_dir_validation, b_dir_validation],
+#         'number_of_images': 10
+#     })
+
 if SHOW_DATASET_EXAMPLE:
-    start_new_thread(showDatasetExamples, (), {
-        'train_dirs': [a_dir, b_dir],
-        'validation_dirs': [a_dir_validation, b_dir_validation],
-        'number_of_images': 10
-    })
+    showDatasetExamples([a_dir, b_dir], [a_dir_validation, b_dir_validation])
 
 # define TensorFlow model
 model = tf.keras.models.Sequential([
@@ -84,7 +90,7 @@ validation_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1 /
 train_generator = train_datagen.flow_from_directory(
     work_dir,  # directory with all images
     target_size=(150, 150),  # all images will be resized to ...
-    batch_size=128,
+    batch_size=20,
     class_mode='binary'  # binary labels
 )
 validation_generator = None
@@ -92,7 +98,7 @@ if VALIDATE:
     validation_generator = validation_datagen.flow_from_directory(
         work_dir_validation,
         target_size=(150, 150),
-        batch_size=32,
+        batch_size=20,
         class_mode='binary'
     )
 
@@ -100,12 +106,12 @@ if VALIDATE:
 # training:
 def train():
     return model.fit(train_generator,
-                        steps_per_epoch=8,
-                        epochs=15,
-                        callbacks=[stopTraining(accuracy=0.90)],
-                        verbose=1,
-                        validation_data=validation_generator,
-                        validation_steps=8)
+                     steps_per_epoch=8,
+                     epochs=15,
+                     callbacks=[stopTraining(accuracy=0.90)],
+                     verbose=1,
+                     validation_data=validation_generator,
+                     validation_steps=8)
 
 
 # Try to use videocard for processing
@@ -113,6 +119,8 @@ def train():
 def trainWithGPU():
     print('Start training using GPU')
     return train()
+
+
 try:
     history = trainWithGPU()
 except:

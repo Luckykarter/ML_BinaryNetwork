@@ -100,4 +100,4 @@ def plotAccuracy(history, validate=False):
         plt.plot(epochs, val_loss)
     plt.title(title + 'loss')
     plt.figure()
-    #plt.show()
+    plt.show()
