@@ -1,11 +1,12 @@
 from getData import getData, getUserFile
 import os
-from printImages import printImages, printIntermediateRepresentations, showDatasetExamples
+from printImages import printImages, plotAccuracy, showDatasetExamples
 import tensorflow as tf
 import numpy as np
 from numba import jit, cuda
 from stopTraining import stopTraining
 from keras_preprocessing import image
+from _thread import start_new_thread
 
 """
 This file executes script that trains neural network
@@ -22,8 +23,8 @@ cats - with training pictures of cats
 
 SHOW_DATASET_EXAMPLE = True
 a_dir, b_dir, a_dir_validation, b_dir_validation = getData()
-VALIDATE = a_dir_validation is not None   # do not validate if validation set is not provided
-a_label = os.path.basename(a_dir)[:-1].capitalize()     # cut last letter "s". I.e. dogs will become dog
+VALIDATE = a_dir_validation is not None  # do not validate if validation set is not provided
+a_label = os.path.basename(a_dir)[:-1].capitalize()  # cut last letter "s". I.e. dogs will become dog
 b_label = os.path.basename(b_dir)[:-1].capitalize()
 
 work_dir = os.path.dirname(a_dir)
@@ -36,11 +37,17 @@ if VALIDATE:
     print('total validation {} images: {}'.format(a_label, len(os.listdir(a_dir_validation))))
     print('total validation {} images: {}'.format(b_label, len(os.listdir(b_dir_validation))))
 
-# display dataset examples
+# display dataset examples as a separate threads to avoid blocking main script with plot windows
 if SHOW_DATASET_EXAMPLE:
-    showDatasetExamples([a_dir, b_dir], label="Random training images")
+    start_new_thread(showDatasetExamples, (), {
+        'directories': [a_dir, b_dir],
+        'label': 'Random training images'
+    })
     if VALIDATE:
-        showDatasetExamples([a_dir_validation, b_dir_validation], label="Random validation images")
+        start_new_thread(showDatasetExamples, (), {
+            'directories': [a_dir_validation, b_dir_validation],
+            'label': 'Random validation images'
+        })
 
 # define TensorFlow model
 model = tf.keras.models.Sequential([
@@ -57,8 +64,8 @@ model = tf.keras.models.Sequential([
     # tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
     # tf.keras.layers.MaxPooling2D(2, 2),
     # 5
-   # tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
-   # tf.keras.layers.MaxPooling2D(2, 2),
+    # tf.keras.layers.Conv2D(64, (3, 3), activation=tf.nn.relu),
+    # tf.keras.layers.MaxPooling2D(2, 2),
     # flatten the image
     tf.keras.layers.Flatten(),
     # 512 connected neurons
@@ -74,15 +81,15 @@ model.compile(loss=tf.keras.losses.binary_crossentropy,
               metrics=['accuracy'])
 
 # all images will be rescaled by 1.0 / 255
-train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1/255)
-validation_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1/255)
+train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1 / 255)
+validation_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1 / 255)
 
 # flow training images in batches of 128
 train_generator = train_datagen.flow_from_directory(
-    work_dir,               # directory with all images
-    target_size=(150, 150), # all images will be resized to ...
-    batch_size= 128,
-    class_mode='binary'     # binary labels
+    work_dir,  # directory with all images
+    target_size=(150, 150),  # all images will be resized to ...
+    batch_size=128,
+    class_mode='binary'  # binary labels
 )
 validation_generator = None
 if VALIDATE:
@@ -93,34 +100,38 @@ if VALIDATE:
         class_mode='binary'
     )
 
+
 # training:
 def train():
     return model.fit(train_generator,
-                     steps_per_epoch=8,
-                     epochs=15,
-                     callbacks=[stopTraining(accuracy=0.99)],
-                     verbose=1,
-                     validation_data=validation_generator,
-                     validation_steps=8)
+                        steps_per_epoch=8,
+                        epochs=15,
+                        callbacks=[stopTraining(accuracy=0.90)],
+                        verbose=1,
+                        validation_data=validation_generator,
+                        validation_steps=8)
+
 
 # Try to use videocard for processing
 @jit(target='cuda')
 def trainWithGPU():
     print('Start training using GPU')
-    train()
-
+    return train()
 try:
-    trainWithGPU()
+    history = trainWithGPU()
 except:
     print('Start training using CPU')
-    train()
+    history = train()
 
-#printIntermediateRepresentations(show_images, model)
+# printIntermediateRepresentations(show_images, model)
 
-print("Recognize user images: ")
+# plot how the accuracy evolves during the training
+plotAccuracy(history, VALIDATE)
 
+print('Recognize user images: ')
 img_paths = getUserFile(a_label, b_label)
-while(img_paths):
+
+while img_paths:
     labels = list()
     for file in img_paths:
         try:
@@ -138,9 +149,8 @@ while(img_paths):
             else:
                 # print(file + '\nis a horse')
                 labels.append(b_label)
-        except: # it is not an image - skip it
+        except:  # it is not an image - skip it
             continue
     if len(img_paths) == len(labels):
-        printImages(img_paths, "Neural network guesses", labels)
+        printImages(img_paths, 'Neural network guesses', labels)
     img_paths = getUserFile(a_label, b_label)
-

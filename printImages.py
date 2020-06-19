@@ -65,7 +65,7 @@ def printIntermediateRepresentations(images, model):
             plt.imshow(display_grid)
     plt.show()
 
-def showDatasetExamples(directories: [str], label="Untitled", number_of_images = 10):
+def showDatasetExamples(directories: [str]=None, label="Untitled", number_of_images = 10):
 
     show_images = []
     for dir in directories:
@@ -74,3 +74,25 @@ def showDatasetExamples(directories: [str], label="Untitled", number_of_images =
                 for name in random.choices(names, k=number_of_images)]
     printImages(show_images, label)
 
+def plotAccuracy(history, validate=False):
+    accuracy = history.history['accuracy']
+    loss = history.history['loss']
+    val_accuracy, val_loss = None, None
+    title = 'Training '
+
+    epochs = range(len(accuracy))
+    plt.plot(epochs, accuracy)
+    if validate:
+        title += 'and Validation '
+        val_accuracy = history.history['val_accuracy']
+        val_loss = history.history['val_loss']
+        plt.plot(epochs, val_accuracy)
+    plt.title(title + 'accuracy')
+    plt.figure()
+
+    plt.plot(epochs, loss)
+    if validate:
+        plt.plot(epochs, val_loss)
+    plt.title(title + 'loss')
+    plt.figure()
+    #plt.show()
