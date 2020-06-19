@@ -1,4 +1,5 @@
 from tensorflow.keras.callbacks import Callback
+import easygui
 
 class stopTraining(Callback):
     def __init__(self, accuracy):
@@ -22,3 +23,6 @@ class stopOnOptimalAccuracy(Callback):
                   format(logs.get('val_accuracy')*100))
             self.model.stop_training = True
 
+def manualStop():
+    return easygui.ynbox(msg='Do you want to manually stop training?',
+                         title='Manual stop')

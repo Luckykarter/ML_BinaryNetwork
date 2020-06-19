@@ -4,9 +4,11 @@ from printImages import printImages, plotAccuracy, showDatasetExamples
 import tensorflow as tf
 import numpy as np
 from numba import jit, cuda
-from stopTraining import stopTraining, stopOnOptimalAccuracy
+from stopTraining import stopTraining, stopOnOptimalAccuracy, manualStop
 from keras_preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import concurrent.futures # fire learning in separate thread to be able to stop it manually
+
 
 """
 This file executes script that trains neural network
@@ -22,7 +24,7 @@ cats - with training pictures of cats
 """
 
 SHOW_DATASET_EXAMPLE = False
-USE_TEST_FOLDERS = False
+USE_TEST_FOLDERS = True
 TARGET_SIZE= 150
 
 if USE_TEST_FOLDERS: # for saving time during tests - give hardcoded folders
@@ -49,7 +51,7 @@ if VALIDATE:
 
 # display dataset examples as a separate threads to avoid blocking main script with plot windows
 # TKinter does not like multi-thread and plt.show(block=False) does not work
-# TODO: figure out a way to show pictures non-blocking way
+# TODO: figure out a way to show pictures non-blocking way - need to try out concurrent.futures
 # if SHOW_DATASET_EXAMPLE:
 #
 #     start_new_thread(showDatasetExamples, (), {
@@ -126,7 +128,7 @@ validation_generator = None
 if VALIDATE:
     validation_generator = validation_datagen.flow_from_directory(
         work_dir_validation,
-        target_size=(TARGET_SIZE,TARGET_SIZE),
+        target_size=(TARGET_SIZE, TARGET_SIZE),
         batch_size=16,
         class_mode='binary'
     )
@@ -148,18 +150,25 @@ def train():
                      validation_steps=8
            )
 
+def concurTrain():
+    with concurrent.futures.ThreadPoolExecutor() as e:
+        stop_training = e.submit(manualStop)
+        future = e.submit(train)
+        if stop_training.result():
+            model.stop_training = True
+        return future.result()
 
 # Try to use videocard for processing
 @jit(target='cuda')
 def trainWithGPU():
     print('Start training using GPU')
-    return train()
+    return concurTrain()
 
 try:
     history = trainWithGPU()
 except:
     print('Start training using CPU')
-    history = train()
+    history = concurTrain()
 
 # printIntermediateRepresentations(show_images, model)
 
