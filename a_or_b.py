@@ -20,7 +20,7 @@ dogs - with training pictures of dogs
 cats - with training pictures of cats
 """
 
-SHOW_DATASET_EXAMPLE = False
+SHOW_DATASET_EXAMPLE = True
 a_dir, b_dir, a_dir_validation, b_dir_validation = getData()
 VALIDATE = a_dir_validation is not None   # do not validate if validation set is not provided
 a_label = os.path.basename(a_dir)[:-1].capitalize()     # cut last letter "s". I.e. dogs will become dog
@@ -39,7 +39,8 @@ if VALIDATE:
 # display dataset examples
 if SHOW_DATASET_EXAMPLE:
     showDatasetExamples([a_dir, b_dir], label="Random training images")
-    showDatasetExamples([a_dir_validation, b_dir_validation], label="Random validation images")
+    if VALIDATE:
+        showDatasetExamples([a_dir_validation, b_dir_validation], label="Random validation images")
 
 # define TensorFlow model
 model = tf.keras.models.Sequential([
