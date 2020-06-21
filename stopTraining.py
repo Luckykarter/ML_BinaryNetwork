@@ -35,7 +35,7 @@ def manualStop(model):
 
     def execute():
         listener.stop()
-        print("\nTraining stopped manually")
+        print("\nTraining stop requested")
         model.stop_training = True
 
     def on_press(key):
