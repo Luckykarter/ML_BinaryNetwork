@@ -3,7 +3,6 @@ import os
 from printimages import printImages, plot_accuracy, show_dataset_examples
 import tensorflow as tf
 import numpy as np
-from stoptraining import StopTraining
 from keras_preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from get_keras_model import get_new_model, train_model, get_pre_trained_model
@@ -27,7 +26,7 @@ SHOW_DATASET_EXAMPLE = False
 USE_TEST_FOLDERS = False
 TARGET_SIZE= 150
 USE_PRE_TRAINED_MODEL = True
-AUGMENT = False
+AUGMENT = True
 #
 
 if USE_TEST_FOLDERS: # for saving time during tests - give hardcoded folders
@@ -100,7 +99,6 @@ if VALIDATE:
         class_mode='binary'
     )
 
-
 #training process refactored into function
 history = train_model(model,
                       train_generator=train_generator,
@@ -112,7 +110,6 @@ history = train_model(model,
 plot_accuracy(history, VALIDATE)
 
 print('Recognize user images: ')
-
 
 while True:
     img_paths = get_user_file(a_label, b_label)

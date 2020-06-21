@@ -16,31 +16,40 @@ class StopTraining(Callback):
                   format(accuracy * 100))
             self.model.stop_training = True
 
-def manual_stop(model):
-    # The key combination to check
-    COMBINATIONS = [
-        {keyboard.Key.ctrl, keyboard.KeyCode(char='s')},
-        {keyboard.Key.ctrl, keyboard.KeyCode(char='S')}
-    ]
+# class for manual stop via hotkey (Ctrl+S)
+class ManualStop:
+    def __init__(self, model):
+        self.model = model
+        self.listener = None
 
-    # The currently active modifiers
-    current = set()
+        # The currently active modifiers
+        self.current = set()
 
-    def execute():
-        listener.stop()
+        # The key combination to check
+        self.COMBINATIONS = [
+            {keyboard.Key.ctrl, keyboard.KeyCode(char='s')},
+            {keyboard.Key.ctrl, keyboard.KeyCode(char='S')}
+        ]
+
+    def start_listener(self):
+        with keyboard.Listener(on_press=self.on_press, on_release=self.on_release) as self.listener:
+            print('To stop training manually - press Ctrl+S')
+            self.listener.join()
+
+    def stop_listener(self):
+        self.listener.stop()
+
+    def execute(self):
+        self.listener.stop()
         print("\nTraining stop requested")
-        model.stop_training = True
+        self.model.stop_training = True
 
-    def on_press(key):
-        if any([key in COMBO for COMBO in COMBINATIONS]):
-            current.add(key)
-            if any(all(k in current for k in COMBO) for COMBO in COMBINATIONS):
-                execute()
+    def on_press(self, key):
+        if any([key in COMBO for COMBO in self.COMBINATIONS]):
+            self.current.add(key)
+            if any(all(k in self.current for k in COMBO) for COMBO in self.COMBINATIONS):
+                self.execute()
 
-    def on_release(key):
-        if any([key in COMBO for COMBO in COMBINATIONS]):
-            current.remove(key)
-
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-        print('To stop training manually - press Ctrl+S')
-        listener.join()
+    def on_release(self, key):
+        if any([key in COMBO for COMBO in self.COMBINATIONS]):
+            self.current.remove(key)

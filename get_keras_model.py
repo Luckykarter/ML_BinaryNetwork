@@ -1,6 +1,6 @@
 import tensorflow as tf
 import concurrent.futures  # fire learning in separate thread to be able to stop it manually
-from stoptraining import manual_stop
+from stoptraining import ManualStop
 from numba import jit, cuda
 import requests
 import os
@@ -31,7 +31,7 @@ def get_pre_trained_model(image_width, image_height):
     for layer in pre_trained_model.layers:
         # print(layer.name, layer.output_shape)
         layer.trainable = True
-    last_layer = pre_trained_model.get_layer('mixed6')
+    last_layer = pre_trained_model.get_layer('mixed7')
     print('last layer output shape: ', last_layer.output_shape)
     last_output = last_layer.output
 
@@ -41,11 +41,15 @@ def get_pre_trained_model(image_width, image_height):
     # add a fully connected layer with 1024 hidden units
     x = tf.keras.layers.Dense(1024, activation=tf.nn.relu)(x)
 
+    # add a dropout
+    x = tf.keras.layers.Dropout(0.2)(x)
+
     # add a final sigmoid layer for classification
     x = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(x)
     model = tf.keras.Model(pre_trained_model.input, x)
 
     return model
+
 
 def get_new_model(image_width, image_height):
     model = tf.keras.models.Sequential([
@@ -74,24 +78,27 @@ def get_new_model(image_width, image_height):
     model.summary()
     return model
 
+
 # training:
 def _train(model, train_generator, validation_generator):
     return model.fit(train_generator,
                      steps_per_epoch=8,
-                     epochs=40,
+                     epochs=10,
                      callbacks=None,
                      verbose=1,
                      validation_data=validation_generator
-                     #validation_steps=8
+                     # validation_steps=8
                      )
 
 
 def _concur_train(model, train_generator, validation_generator):
     with concurrent.futures.ThreadPoolExecutor() as e:
-        cancel = e.submit(manual_stop, model)
-        future = e.submit(_train, model, train_generator, validation_generator)
-        cancel.cancel()
-        return future.result()
+        ms = ManualStop(model)
+        e.submit(ms.start_listener)
+        train = e.submit(_train, model, train_generator, validation_generator)
+        res = train.result()
+        ms.stop_listener() # stop listen to keys when training is finished
+        return res
 
 
 # Try to use videocard for processing
