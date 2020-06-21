@@ -135,7 +135,8 @@ while True:
             else:
                 # print(file + '\nis a horse')
                 labels.append(b_label)
-        except:  # it is not an image - skip it
+        except Exception as e:  # it is not an image - skip it
+            print(e)
             continue
     if len(img_paths) == len(labels):
         printImages(img_paths, 'Neural network guesses', labels)
