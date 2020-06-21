@@ -27,7 +27,8 @@ USE_TEST_FOLDERS = False
 TARGET_SIZE = 200
 USE_PRE_TRAINED_MODEL = True
 AUGMENT = True
-PLOT_ACCURACY = False
+is_plot_accuracy = True # at the meantime accuracy plotted only for new models
+# TODO: use CSVLogger to store statistics along with model
 #
 
 if USE_TEST_FOLDERS:  # for saving time during tests - give hardcoded folders
@@ -62,6 +63,7 @@ model_path = fileopenbox(
     filetypes='*.h5')
 if model_path is not None:
     model = tf.keras.models.load_model(model_path)
+    is_plot_accuracy = False
 else:
     # define TensorFlow model - refactored into function to be able to use pre-trained model
     if USE_PRE_TRAINED_MODEL:
@@ -117,7 +119,7 @@ else:
 # printIntermediateRepresentations(show_images, model)
 
 # plot how the accuracy evolves during the training
-if PLOT_ACCURACY:
+if is_plot_accuracy:
     plot_accuracy(history, VALIDATE)
 
 print('Recognize user images: ')
