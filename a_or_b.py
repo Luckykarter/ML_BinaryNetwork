@@ -3,7 +3,6 @@ import os
 from printimages import printImages, plot_accuracy, show_dataset_examples
 import tensorflow as tf
 import numpy as np
-import cv2
 from keras_preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from get_keras_model import get_new_model, train_model, get_pre_trained_model
@@ -100,7 +99,7 @@ else:
         validation_generator = validation_datagen.flow_from_directory(
             work_dir_validation,
             target_size=(TARGET_SIZE, TARGET_SIZE),
-            batch_size=20,
+            batch_size=16,
             class_mode='binary'
         )
 
@@ -109,9 +108,11 @@ else:
                           train_generator=train_generator,
                           validation_generator=validation_generator)
 
-    save_path = filesavebox(msg='Save model', filetypes='*.h5')
+    save_path = filesavebox(msg='Save model', filetypes='*.h5',
+                            default='{}s_{}s.h5'.format(a_label, b_label).lower())
     if save_path:
         model.save(save_path)
+        print('Model saved: ', save_path)
 
 # printIntermediateRepresentations(show_images, model)
 
@@ -129,7 +130,6 @@ while True:
     for file in img_paths:
         # print(file)
         try:
-
             img = image.load_img(
                 file, target_size=(TARGET_SIZE, TARGET_SIZE)
             )

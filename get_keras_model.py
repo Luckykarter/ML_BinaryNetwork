@@ -86,7 +86,7 @@ def get_new_model(image_width, image_height):
 def _train(model, train_generator, validation_generator):
     return model.fit(train_generator,
                      steps_per_epoch=16,
-                     epochs=20,
+                     epochs=15,
                      callbacks=None,
                      verbose=1,
                      validation_data=validation_generator,
