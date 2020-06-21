@@ -3,10 +3,11 @@ import os
 from printimages import printImages, plot_accuracy, show_dataset_examples
 import tensorflow as tf
 import numpy as np
+import cv2
 from keras_preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from get_keras_model import get_new_model, train_model, get_pre_trained_model
-
+from easygui import fileopenbox, filesavebox
 
 """
 This file executes script that trains neural network
@@ -24,16 +25,17 @@ cats - with training pictures of cats
 # input parameters for different workflows
 SHOW_DATASET_EXAMPLE = False
 USE_TEST_FOLDERS = False
-TARGET_SIZE= 150
+TARGET_SIZE = 200
 USE_PRE_TRAINED_MODEL = True
 AUGMENT = True
+PLOT_ACCURACY = False
 #
 
-if USE_TEST_FOLDERS: # for saving time during tests - give hardcoded folders
-    a_dir = 'resources/cats_and_dogs_filtered/train/cats'
-    b_dir = 'resources/cats_and_dogs_filtered/train/dogs'
-    a_dir_validation = 'resources/cats_and_dogs_filtered/validation/cats'
-    b_dir_validation = 'resources/cats_and_dogs_filtered/validation/dogs'
+if USE_TEST_FOLDERS:  # for saving time during tests - give hardcoded folders
+    a_dir = 'resources/cats_and_dogs_filtered/train/dogs'
+    b_dir = 'resources/cats_and_dogs_filtered/train/cats'
+    a_dir_validation = 'resources/cats_and_dogs_filtered/validation/dogs'
+    b_dir_validation = 'resources/cats_and_dogs_filtered/validation/cats'
 else:
     a_dir, b_dir, a_dir_validation, b_dir_validation = get_data()
 
@@ -55,59 +57,67 @@ if VALIDATE:
 if SHOW_DATASET_EXAMPLE:
     show_dataset_examples([a_dir, b_dir], [a_dir_validation, b_dir_validation])
 
-# define TensorFlow model - refactored into function to be able to use pre-trained model
-if USE_PRE_TRAINED_MODEL:
-    model = get_pre_trained_model(TARGET_SIZE, TARGET_SIZE)
+# use saved trained model
+model_path = fileopenbox(
+    title='Load keras model for {}s and {}s'.format(a_label, b_label),
+    filetypes='*.h5')
+if model_path is not None:
+    model = tf.keras.models.load_model(model_path)
 else:
-    model = get_new_model(TARGET_SIZE, TARGET_SIZE)
+    # define TensorFlow model - refactored into function to be able to use pre-trained model
+    if USE_PRE_TRAINED_MODEL:
+        model = get_pre_trained_model(TARGET_SIZE, TARGET_SIZE)
+    else:
+        model = get_new_model(TARGET_SIZE, TARGET_SIZE)
 
-model.compile(loss=tf.keras.losses.binary_crossentropy,
-              optimizer=tf.keras.optimizers.RMSprop(lr=1e-4),
-              metrics=['accuracy'])
+    # all images will be rescaled by 1.0 / 255
+    # add augmentation to increase dataset size
+    if AUGMENT:
+        train_datagen = ImageDataGenerator(
+            rescale=1 / 255.0,
+            rotation_range=40,  # random rotation from 0 to 40 degrees
+            width_shift_range=0.2,  # random shift width-wise from 0 to 0.2
+            height_shift_range=0.2,  # random shift height-wise
+            shear_range=0.2,  # shear - i.e. transform image
+            zoom_range=0.2,  # random zooming
+            horizontal_flip=True,
+            fill_mode='nearest'  # how to fill lost pixels
+        )
+    else:
+        train_datagen = ImageDataGenerator(rescale=1 / 255.0)
 
-# all images will be rescaled by 1.0 / 255
-# add augmentation to increase dataset size
-if AUGMENT:
-    train_datagen = ImageDataGenerator(
-        rescale=1 / 255.0,
-        rotation_range=40,  # random rotation from 0 to 40 degrees
-        width_shift_range=0.2,  # random shift width-wise from 0 to 0.2
-        height_shift_range=0.2,  # random shift height-wise
-        shear_range=0.2,  # shear - i.e. transform image
-        zoom_range=0.2,  # random zooming
-        horizontal_flip=True,
-        fill_mode='nearest'  # how to fill lost pixels
-    )
-else:
-    train_datagen = ImageDataGenerator(rescale=1 / 255.0)
+    validation_datagen = ImageDataGenerator(rescale=1 / 255.0)
 
-validation_datagen = ImageDataGenerator(rescale=1 / 255.0)
-
-# flow training images in batches of 20
-train_generator = train_datagen.flow_from_directory(
-    work_dir,  # directory with all images
-    target_size=(TARGET_SIZE, TARGET_SIZE),  # all images will be resized to ...
-    batch_size=32,
-    class_mode='binary'  # binary labels
-)
-validation_generator = None
-if VALIDATE:
-    validation_generator = validation_datagen.flow_from_directory(
-        work_dir_validation,
-        target_size=(TARGET_SIZE, TARGET_SIZE),
+    # flow training images in batches of 20
+    train_generator = train_datagen.flow_from_directory(
+        work_dir,  # directory with all images
+        target_size=(TARGET_SIZE, TARGET_SIZE),  # all images will be resized to ...
         batch_size=16,
-        class_mode='binary'
+        class_mode='binary'  # binary labels
     )
+    validation_generator = None
+    if VALIDATE:
+        validation_generator = validation_datagen.flow_from_directory(
+            work_dir_validation,
+            target_size=(TARGET_SIZE, TARGET_SIZE),
+            batch_size=20,
+            class_mode='binary'
+        )
 
-#training process refactored into function
-history = train_model(model,
-                      train_generator=train_generator,
-                      validation_generator=validation_generator)
+    # training process refactored into function
+    history = train_model(model,
+                          train_generator=train_generator,
+                          validation_generator=validation_generator)
+
+    save_path = filesavebox(msg='Save model', filetypes='*.h5')
+    if save_path:
+        model.save(save_path)
 
 # printIntermediateRepresentations(show_images, model)
 
 # plot how the accuracy evolves during the training
-plot_accuracy(history, VALIDATE)
+if PLOT_ACCURACY:
+    plot_accuracy(history, VALIDATE)
 
 print('Recognize user images: ')
 
@@ -119,13 +129,17 @@ while True:
     for file in img_paths:
         # print(file)
         try:
+
             img = image.load_img(
                 file, target_size=(TARGET_SIZE, TARGET_SIZE)
             )
-            x = image.img_to_array(img)
+
+            x = image.img_to_array(img) * (1/255.0)
             x = np.expand_dims(x, axis=0)
             images = np.vstack([x])
-            classes = model.predict(images, batch_size=10)
+            classes = model(images)
+            # print(classes)
+            # classes = model.predict(x, batch_size=10)
             if classes[0] > 0.5:
                 # print(file + '\nis a human')
                 labels.append(a_label)

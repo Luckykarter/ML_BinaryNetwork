@@ -30,7 +30,7 @@ def get_pre_trained_model(image_width, image_height):
     pre_trained_model.load_weights(local_weights_file)
     for layer in pre_trained_model.layers:
         # print(layer.name, layer.output_shape)
-        layer.trainable = True
+        layer.trainable = False
     last_layer = pre_trained_model.get_layer('mixed7')
     print('last layer output shape: ', last_layer.output_shape)
     last_output = last_layer.output
@@ -45,9 +45,12 @@ def get_pre_trained_model(image_width, image_height):
     x = tf.keras.layers.Dropout(0.2)(x)
 
     # add a final sigmoid layer for classification
-    x = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(x)
+    x = tf.keras.layers.Dense(1, activation='sigmoid')(x)
     model = tf.keras.Model(pre_trained_model.input, x)
 
+    model.compile(loss=tf.keras.losses.binary_crossentropy,
+                  optimizer=tf.keras.optimizers.RMSprop(lr=1e-4),
+                  metrics=['accuracy'])
     return model
 
 
@@ -82,12 +85,12 @@ def get_new_model(image_width, image_height):
 # training:
 def _train(model, train_generator, validation_generator):
     return model.fit(train_generator,
-                     steps_per_epoch=8,
-                     epochs=10,
+                     steps_per_epoch=16,
+                     epochs=20,
                      callbacks=None,
                      verbose=1,
-                     validation_data=validation_generator
-                     # validation_steps=8
+                     validation_data=validation_generator,
+                     validation_steps=8
                      )
 
 
