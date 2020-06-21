@@ -1,13 +1,13 @@
 import tensorflow as tf
 import concurrent.futures  # fire learning in separate thread to be able to stop it manually
-from stopTraining import manualStop
+from stoptraining import manual_stop
 from numba import jit, cuda
 import requests
 import os
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 
 
-def getPreTrainedModel(image_width, image_height):
+def get_pre_trained_model(image_width, image_height):
     local_weights_file = 'resources/inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5'
     if not os.path.exists(local_weights_file):
         print('Downloading file from URL')
@@ -47,7 +47,7 @@ def getPreTrainedModel(image_width, image_height):
 
     return model
 
-def getNewModel(image_width, image_height):
+def get_new_model(image_width, image_height):
     model = tf.keras.models.Sequential([
         # 1
         tf.keras.layers.Conv2D(16, (3, 3), activation=tf.nn.relu, input_shape=(image_width, image_height, 3)),
@@ -75,7 +75,7 @@ def getNewModel(image_width, image_height):
     return model
 
 # training:
-def train(model, train_generator, validation_generator):
+def _train(model, train_generator, validation_generator):
     return model.fit(train_generator,
                      steps_per_epoch=8,
                      epochs=40,
@@ -86,25 +86,25 @@ def train(model, train_generator, validation_generator):
                      )
 
 
-def concurTrain(model, train_generator, validation_generator):
+def _concur_train(model, train_generator, validation_generator):
     with concurrent.futures.ThreadPoolExecutor() as e:
-        cancel = e.submit(manualStop, model)
-        future = e.submit(train, model, train_generator, validation_generator)
+        cancel = e.submit(manual_stop, model)
+        future = e.submit(_train, model, train_generator, validation_generator)
         cancel.cancel()
         return future.result()
 
 
 # Try to use videocard for processing
 @jit(target='cuda')
-def trainWithGPU(model, train_generator, validation_generator):
+def _train_with_gpu(model, train_generator, validation_generator):
     print('Start training using GPU')
-    return concurTrain(model, train_generator, validation_generator)
+    return _concur_train(model, train_generator, validation_generator)
 
 
-def trainModel(model, train_generator, validation_generator):
+def train_model(model, train_generator, validation_generator):
     try:
-        return trainWithGPU(model, train_generator, validation_generator)
+        return _train_with_gpu(model, train_generator, validation_generator)
     except Exception as e:
         print(e)
         print('Start training using CPU')
-        return concurTrain(model, train_generator, validation_generator)
+        return _concur_train(model, train_generator, validation_generator)

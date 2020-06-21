@@ -28,7 +28,7 @@ def printImages(images, title, img_titles = None):
         plt.imshow(img)
     plt.show()
 
-def printIntermediateRepresentations(images, model):
+def print_intermediate_representations(images, model):
     successive_outputs = [layer.output for layer in model.layers[1:]]
     visualization_model = tf.keras.models.Model(
         inputs=model.input,
@@ -67,7 +67,7 @@ def printIntermediateRepresentations(images, model):
     plt.show()
 
 # opens separate windows with random examples of training and validation images
-def showDatasetExamples(train_dirs=None, validation_dirs=None, number_of_images = 10):
+def show_dataset_examples(train_dirs=None, validation_dirs=None, number_of_images = 10):
     sets = [(train_dirs, 'training'), (validation_dirs, 'validation')]
     for dirs, label in sets:
         show_images = []
@@ -79,7 +79,7 @@ def showDatasetExamples(train_dirs=None, validation_dirs=None, number_of_images 
         if show_images:
             printImages(show_images, 'Random {} images'.format(label))
 
-def plotAccuracy(history, validate=False):
+def plot_accuracy(history, validate=False):
     accuracy = history.history['accuracy']
     loss = history.history['loss']
     val_accuracy, val_loss = None, None

@@ -2,7 +2,7 @@ import os
 import zipfile
 import easygui
 
-def unZipAll(dir):
+def _unzip_all(dir):
     for path in os.listdir(dir):
         s_path = os.path.splitext(path)
         if s_path[1].lower() == '.zip':
@@ -13,7 +13,7 @@ def unZipAll(dir):
             zip_ref.close()
 
 # load images of humans and horses from ZIP-file
-def getData():
+def get_data():
     # add generalized directory
     train_dir = None
     while train_dir is None:
@@ -49,7 +49,7 @@ def getData():
 # from tkinter import filedialog
 
 
-def getUserFile(a_label: str, b_label: str):
+def get_user_file(a_label: str, b_label: str):
 # this does not work well - hangs the script
 #     root = tk.Tk()
 #     root.withdraw()

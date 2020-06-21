@@ -1,12 +1,12 @@
-from getData import getData, getUserFile
+from getdata import get_data, get_user_file
 import os
-from printImages import printImages, plotAccuracy, showDatasetExamples
+from printimages import printImages, plot_accuracy, show_dataset_examples
 import tensorflow as tf
 import numpy as np
-from stopTraining import stopTraining
+from stoptraining import StopTraining
 from keras_preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from getKerasModel import getNewModel, trainModel, getPreTrainedModel
+from get_keras_model import get_new_model, train_model, get_pre_trained_model
 
 
 """
@@ -36,7 +36,7 @@ if USE_TEST_FOLDERS: # for saving time during tests - give hardcoded folders
     a_dir_validation = 'resources/cats_and_dogs_filtered/validation/cats'
     b_dir_validation = 'resources/cats_and_dogs_filtered/validation/dogs'
 else:
-    a_dir, b_dir, a_dir_validation, b_dir_validation = getData()
+    a_dir, b_dir, a_dir_validation, b_dir_validation = get_data()
 
 VALIDATE = a_dir_validation is not None  # do not validate if validation set is not provided
 a_label = os.path.basename(a_dir)[:-1].capitalize()  # cut last letter "s". I.e. dogs will become dog
@@ -54,13 +54,13 @@ if VALIDATE:
     print('total validation {} images: {}'.format(b_label, len(os.listdir(b_dir_validation))))
 
 if SHOW_DATASET_EXAMPLE:
-    showDatasetExamples([a_dir, b_dir], [a_dir_validation, b_dir_validation])
+    show_dataset_examples([a_dir, b_dir], [a_dir_validation, b_dir_validation])
 
 # define TensorFlow model - refactored into function to be able to use pre-trained model
 if USE_PRE_TRAINED_MODEL:
-    model = getPreTrainedModel(TARGET_SIZE, TARGET_SIZE)
+    model = get_pre_trained_model(TARGET_SIZE, TARGET_SIZE)
 else:
-    model = getNewModel(TARGET_SIZE, TARGET_SIZE)
+    model = get_new_model(TARGET_SIZE, TARGET_SIZE)
 
 model.compile(loss=tf.keras.losses.binary_crossentropy,
               optimizer=tf.keras.optimizers.RMSprop(lr=1e-4),
@@ -102,20 +102,20 @@ if VALIDATE:
 
 
 #training process refactored into function
-history = trainModel(model,
-                     train_generator=train_generator,
-                     validation_generator=validation_generator)
+history = train_model(model,
+                      train_generator=train_generator,
+                      validation_generator=validation_generator)
 
 # printIntermediateRepresentations(show_images, model)
 
 # plot how the accuracy evolves during the training
-plotAccuracy(history, VALIDATE)
+plot_accuracy(history, VALIDATE)
 
 print('Recognize user images: ')
 
 
 while True:
-    img_paths = getUserFile(a_label, b_label)
+    img_paths = get_user_file(a_label, b_label)
     if not img_paths:
         break
     labels = list()
